@@ -1,0 +1,25 @@
+---
+- hosts: web
+  vars:
+    http_port: 80
+    my_site: mysite
+  remote_user: root
+
+  tasks:
+    - name: Install nginx pip uwsgi postgresql
+      apt: name={{item}} state=present
+      with_items:
+       - python-pip
+       - nginx
+       - uwsgi
+       - postgresql
+    
+    - name: Install django
+      pip: name=django
+    - name: Create django project
+      command: cd /root
+      command: django-admin startproject {{my_site}}
+    - name: Run Manage.py
+      command: /root/{{my_site}}/manage.py
+
+
