@@ -3,23 +3,88 @@
   vars:
     http_port: 80
     my_site: mysite
-  remote_user: root
+  remote_user: web
 
   tasks:
-    - name: Install nginx pip uwsgi postgresql
+    - name: Install nginx pip uwsgi postgresql git
       apt: name={{item}} state=present
       with_items:
        - python-pip
+       - libpq-dev
+       - python-dev
        - nginx
        - uwsgi
        - postgresql
+       - postgresql-contrib
+       - git
+      become: yes
     
-    - name: Install django
-      pip: name=django
-    - name: Create django project
-      command: cd /root
-      command: django-admin startproject {{my_site}}
-    - name: Run Manage.py
-      command: /root/{{my_site}}/manage.py
+#    - name: Install virutal env
+#      pip: name={{item}}
+#      with_items:
+#        - virtualenv 
+#        - virtualenvwrapper
+#      become: yes
 
+#    - name: prepare 0
+#      shell: export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
+
+#    - name: prepare virtual env
+#      shell: export WORKON_HOME=~/Env
+
+#    - name: source virtual env
+#      command: source /usr/local/bin/virtualenvwrapper.sh
+
+
+#    - name: Create virtual env
+#    - name: Use virtual env
+
+    - name: Install django
+      pip: name={{item}}
+      with_items:
+        - django
+        - psycopg2
+        - supervisor
+      become: yes
+
+# git update should be "update: yes"
+    - name: Clone django project
+      git: repo=https://github.com/jigkoxsee/tripping-octo.git dest=/home/web/{{my_site}} update=no
+
+# what is this? run for? 
+    - name: Run Manage.py
+      command: /home/web/{{my_site}}/manage.py
+
+#### UWSGI
+
+# copy ini to app-avai
+# create symlink to app-enb
+
+#### NGINX
+
+# copy conf to nginx's dir
+
+
+# need supervisor: nginx,uwsgi
+    - name: Copy supervisord.conf
+      copy: src=conf/supervisord.conf dest=/etc/
+      become: yes
+
+    - name: Copy supervisor config file
+      copy: src=conf/supervisor.d/ dest=/etc/supervisor/conf.d/
+      become: yes
+
+    - name: Create supervisord log dir
+      file: path=/var/log/supervisord state=directory
+      become: yes
+
+    - name: Touch supervisord log
+      file: path=/var/log/supervisord/supervisord.log state=touch
+      become: yes
+
+
+# /bin/true use for when it already running we need it to return true
+    - name: Run Supervisord
+      shell: supervisord || /bin/true
+      become: yes
 
